@@ -1,24 +1,42 @@
 # H0D Creature Builder
 
-## v0.1.0 — socle
+## v0.2.1 — Faune de la Dent d’Ambre
 
-Cette première version prépare le générateur de faune sans figer de statistiques non validées.
+Cette version intègre le premier biome validé du bestiaire.
 
-### Architecture
-- Actor canonique : `actor-creature` via H0D Template Manager.
-- Mutations / améliorations : `item-modificateur`.
-- Attaques naturelles ou armes : `item-arme`.
-- Support préparé pour armures, objets et ressources.
-- Mise à jour en deux phases pour éviter l'écrasement des `system.props` par Custom System Builder.
-- Conservation des images personnalisées lors d'une régénération.
+### Données incluses
+- **12 créatures naturelles**
+- **10 créatures mutées / altérées**
+- **28 composants biologiques / améliorations mutées**
+- niveaux de Menace **0 à 7**
 
-### API
-`game.modules.get("h0d-creature-builder").api`
+Les profils sont rangés automatiquement :
+`H0D — Faune générée / Dent d’Ambre / Naturelles ou Mutées / Menace X`
 
-Méthodes principales :
-- `registerCreature(definition)`
-- `registerMutation(definition)`
-- `buildCreature(key, { mutationKeys, mode })`
-- `open()`
+### Mutations
+Les créatures mutées reçoivent automatiquement les composants biologiques indiqués par la fiche source.
 
-Aucune créature n'est incluse dans la v0.1.0 : les données seront intégrées après validation dans le chantier Bestiaire.
+Le template `H0D_Modificateur` gère immédiatement les contributions **+PV** et **+DEF**.  
+Les données propres de chaque composant — PV, DEF, emplacement, Dét./Destr., effet si détruit — sont également enregistrées dans les flags du module pour ne pas perdre l’information et préparer une future gestion ciblable des composants biologiques.
+
+### Fidélité aux données
+Le PDF ne chiffre pas l’initiative, les sauvegardes, les caractéristiques ni l’XP de ces profils. Ces valeurs restent donc volontairement à **0** au lieu d’être inventées.
+
+Pour le Rapace, le Builder conserve une vitesse de base de **3 m** et ajoute la capacité **Vol 15 m**.  
+Pour la Bête alpha, la vitesse de base est **9 m** et la plage source **9–12 m** est conservée dans ses capacités/notes.
+
+### Lancement
+Macro automatique :
+**H0D — Générateur faune**
+
+Commande :
+`game.h0dCreatureBuilder.open();`
+
+### Dépendances
+- Foundry VTT 14
+- Custom System Builder 6.0.2+
+- H0D Template Manager 0.3.0+
+
+### Correctif 0.2.1
+La fenêtre utilise désormais le même mécanisme de formulaire que H0D Machine Builder (`DialogV2.input`).
+La sélection du profil et le bouton de génération fonctionnent donc correctement sous Foundry V14.
