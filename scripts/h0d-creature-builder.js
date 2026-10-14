@@ -1,5 +1,5 @@
 const MODULE_ID = "h0d-creature-builder";
-const MODULE_VERSION = "0.2.1";
+const MODULE_VERSION = "0.2.2";
 const ROOT_FOLDER = "H0D — Faune générée";
 const SOURCE_BIOME = "Dent d’Ambre";
 const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
