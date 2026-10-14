@@ -1,5 +1,5 @@
 const MODULE_ID = "h0d-creature-builder";
-const MODULE_VERSION = "0.2.1";
+const MODULE_VERSION = "0.2.2";
 const ROOT_FOLDER = "H0D — Faune générée";
 const SOURCE_BIOME = "Dent d’Ambre";
 const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
@@ -3334,7 +3334,7 @@ async function openBuilder() {
 
   const state = templateState();
 
-  const result = await foundry.applications.api.DialogV2.input({
+  await foundry.applications.api.DialogV2.wait({
     window:{title:`H0D Creature Builder v${MODULE_VERSION}`},
     content: `
       <div class="h0d-creature-builder" style="display:flex;flex-direction:column;gap:10px;">
@@ -3367,28 +3367,53 @@ async function openBuilder() {
           Les valeurs non chiffrées dans la fiche source (initiative, sauvegardes, caractéristiques, XP)
           restent volontairement à 0.
         </p>
+        <button type="button" data-h0d-run><i class="fa-solid fa-paw"></i> Générer</button>
+        <p data-h0d-status role="status" aria-live="polite" style="margin:0;min-height:1.2em;opacity:.8">Tu peux créer plusieurs créatures sans fermer cette fenêtre.</p>
       </div>`,
-    ok:{label:"Générer / mettre à jour",icon:"fa-solid fa-paw"}
+    buttons:[{action:"close",label:"Fermer",icon:"fa-solid fa-xmark"}],
+    rejectClose:false,
+    render:(_event,dialog)=>{
+      const root=dialog.element?.querySelector(".h0d-creature-builder");
+      const button=root?.querySelector("[data-h0d-run]");
+      const status=root?.querySelector("[data-h0d-status]");
+      if(!button||!status||button.dataset.ready==="1")return;
+      button.dataset.ready="1";
+      let busy=false;
+      button.addEventListener("click",async()=>{
+        if(busy)return;
+        const form=dialog.element?.querySelector("form");
+        if(!form)return;
+        const input=Object.fromEntries(new FormData(form).entries());
+        const key=String(input.creature||""),mode=String(input.mode||"skip");
+        if(!key){status.textContent="Choisis un profil de créature.";notify("warn",status.textContent);return;}
+        busy=true;button.disabled=true;button.textContent="Génération en cours…";
+        status.textContent="Opération en cours…";
+        try{
+          if(mode==="update"||mode==="replace"){
+            const confirmed=await foundry.applications.api.DialogV2.confirm({
+              window:{title:"H0D Créatures — Confirmation"},
+              content:"<p>Mettre à jour ou recréer un Actor peut écraser ses équipements "+
+                "et des modifications réalisées en séance. Continuer ?</p>",
+              yes:{label:"Confirmer",icon:"fa-solid fa-triangle-exclamation"},
+              no:{label:"Annuler"}
+            });
+            if(!confirmed){status.textContent="Opération annulée.";return;}
+          }
+          const actor=await buildCreature(key,{mutationKeys:[],mode});
+          actor?.sheet?.render(true);
+          status.textContent=actor?"Créature prête : "+actor.name+". Tu peux continuer.":"Opération terminée.";
+          if(actor)notify("info","Créature prête : "+actor.name);
+        }catch(err){
+          console.error(MODULE_ID+" | création persistante",err);
+          status.textContent="Erreur : "+(err?.message??err);
+          notify("error","H0D Creature Builder : "+(err?.message??err));
+        }finally{
+          busy=false;button.disabled=false;
+          button.innerHTML='<i class="fa-solid fa-paw"></i> Générer';
+        }
+      });
+    }
   });
-
-  if (!result) return;
-
-  if (!result.creature) {
-    notify("warn","Choisis d’abord un profil de créature.");
-    return;
-  }
-
-  try {
-    const actor = await buildCreature(
-      String(result.creature),
-      {mutationKeys:[], mode:String(result.mode || "update")}
-    );
-    actor.sheet?.render(true);
-    notify("info",`Créature générée : ${actor.name}`);
-  } catch (err) {
-    console.error(`${MODULE_ID} | génération`, err);
-    notify("error",`H0D Creature Builder : ${err?.message ?? err}`);
-  }
 }
 
 async function ensureLauncherMacro() {
