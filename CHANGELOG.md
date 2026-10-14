@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 — Création de créatures en série
+
+- Fenêtre persistante après génération, avec sélections conservées, progression et protection contre les doubles clics. Par défaut les Actors existants sont conservés ; mise à jour et recréation sur confirmation uniquement.
+- Aucun changement aux templates H0D ni aux règles de combat.
+
+
+
 ## 0.2.1
 - Correction bloquante de la fenêtre de génération.
 - Remplacement de `DialogV2.wait` par `DialogV2.input`, comme dans H0D Machine Builder.
