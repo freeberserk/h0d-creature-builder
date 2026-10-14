@@ -1,6 +1,13 @@
 # H0D Creature Builder
 
-## v0.2.1 — Faune de la Dent d’Ambre
+## v0.2.2 — Création de créatures en série
+
+Fenêtre persistante après génération, avec sélections conservées, progression et protection contre les doubles clics. Par défaut les Actors existants sont conservés ; mise à jour et recréation sur confirmation uniquement.
+
+**Mode d'emploi :** lancer la macro habituelle, choisir les données et cliquer sur **Générer / Exécuter**. La fenêtre demeure ouverte. Modifier la sélection et recommencer, puis cliquer sur **Fermer**. La création d'un Actor/item existant respecte le mode conservateur par défaut. Pour les actions modifiant des entrées existantes, une confirmation supplémentaire protège les personnalisations.
+
+
+## v0.2.2 — Faune de la Dent d’Ambre
 
 Cette version intègre le premier biome validé du bestiaire.
 
