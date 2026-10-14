@@ -1,3 +1,11 @@
+## 0.2.2 — Génération en série sans fermeture de fenêtre
+
+- La fenêtre reste ouverte après une génération ; conserve le profil, le mode et les champs saisis pour une nouvelle opération.
+- Bouton **Exécuter** dans le formulaire et bouton **Fermer** explicite ; protection contre les doubles clics et l'exécution simultanée.
+- Affichage du résultat/erreur dans la fenêtre sans la fermer.
+- Les actions **Mettre à jour** et **Recréer** restent disponibles sur confirmation ; création sans écrasement par défaut.
+- Données et règles de génération inchangées. La fermeture du dialogue n'annule pas un document déjà créé.
+
 # H0D Creature Builder
 
 ## v0.2.1 — Faune de la Dent d’Ambre
