@@ -3329,12 +3329,55 @@ function mutationRows() {
   `;
 }
 
+/** Garde la fenêtre ouverte entre deux générations, tout en sérialisant les clics. */
+async function h0dPersistentDialog(options,run) {
+  const Dialog=foundry.applications.api.DialogV2;
+  await Dialog.wait({
+    window:options.window,
+    content:options.content+
+      '<div class="h0d-batch-controls" style="margin-top:10px;display:flex;gap:8px;align-items:center;">'+
+      '<button type="button" data-h0d-batch-run><i class="fa-solid fa-gears"></i> Exécuter</button>'+
+      '<small data-h0d-batch-status aria-live="polite">Prêt à générer plusieurs éléments.</small></div>',
+    buttons:[{action:"close",label:"Fermer",icon:"fa-solid fa-xmark"}],
+    rejectClose:false,
+    render:(_event,dialog)=>{
+      const root=dialog.element,button=root?.querySelector("[data-h0d-batch-run]"),
+        status=root?.querySelector("[data-h0d-batch-status]");
+      if(!button||!status||button.dataset.bound==="yes")return;
+      button.dataset.bound="yes";
+      let busy=false;
+      button.addEventListener("click",async()=>{
+        if(busy)return;
+        const form=root.querySelector("form");
+        if(!form)return;
+        const input=Object.fromEntries(new FormData(form).entries());
+        busy=true;button.disabled=true;
+        const close=root.querySelector('[data-action="close"]');
+        if(close)close.disabled=true;
+        status.textContent="Opération en cours…";
+        try{
+          await run(input);
+          status.textContent="Terminé. Tu peux générer un autre élément.";
+        }catch(err){
+          console.error("H0D | génération",err);
+          status.textContent="Erreur : "+(err?.message??err);
+          ui.notifications?.error("H0D : "+(err?.message??err));
+        }finally{
+          busy=false;button.disabled=false;
+          if(close)close.disabled=false;
+        }
+      });
+    }
+  });
+}
+
+
 async function openBuilder() {
   if (!game.user?.isGM) return notify("warn", "H0D Creature Builder est réservé au MJ.");
 
   const state = templateState();
 
-  const result = await foundry.applications.api.DialogV2.input({
+  await h0dPersistentDialog({
     window:{title:`H0D Creature Builder v${MODULE_VERSION}`},
     content: `
       <div class="h0d-creature-builder" style="display:flex;flex-direction:column;gap:10px;">
@@ -3368,10 +3411,7 @@ async function openBuilder() {
           restent volontairement à 0.
         </p>
       </div>`,
-    ok:{label:"Générer / mettre à jour",icon:"fa-solid fa-paw"}
-  });
-
-  if (!result) return;
+  }, async result => {
 
   if (!result.creature) {
     notify("warn","Choisis d’abord un profil de créature.");
@@ -3389,6 +3429,7 @@ async function openBuilder() {
     console.error(`${MODULE_ID} | génération`, err);
     notify("error",`H0D Creature Builder : ${err?.message ?? err}`);
   }
+  });
 }
 
 async function ensureLauncherMacro() {
