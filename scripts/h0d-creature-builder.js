@@ -3351,8 +3351,8 @@ async function openBuilder() {
         <div class="form-group">
           <label>Si l’Actor existe déjà</label>
           <select name="mode">
+            <option value="skip">Créer si absent / ouvrir si présent</option>
             <option value="update">Mettre à jour (conserve les images)</option>
-            <option value="skip">Ignorer</option>
             <option value="replace">Recréer</option>
           </select>
         </div>
