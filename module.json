@@ -1,8 +1,8 @@
 {
   "id": "h0d-creature-builder",
   "title": "H0D Creature Builder",
-  "description": "Générateur de faune H0D pour Foundry VTT. v0.2.1 : correction de l'interface de génération, biome de la Dent d’Ambre, profils naturels/mutés et composants biologiques.",
-  "version": "0.2.2",
+  "description": "Générateur de faune H0D — profils Dent d’Ambre, PER/DET, sens spéciaux et synchronisation ciblée.",
+  "version": "0.2.3",
   "authors": [
     {
       "name": "JDR Zero Dawn"

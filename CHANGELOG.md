@@ -1,3 +1,10 @@
+## 0.2.3 — Perception, DET et sens de la faune
+
+- Chaque profil de faune Dent d’Ambre reçoit une Perception, une portée normale et, si pertinent, un sens spécial avec sa portée.
+- La DET reste calculée par le template Créature/PNJ v1.25 : `DET = 10 + PER`.
+- Ajout d’un bouton **Synchroniser PER / DET existantes** qui ne modifie que les quatre champs de perception/sens des Actors générés.
+- Aucun PV actuel, équipement, mutation, état ou modification de séance n’est réinitialisé.
+
 # Changelog
 
 ## 0.2.2 — Création de créatures en série
