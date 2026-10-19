@@ -1,5 +1,5 @@
 const MODULE_ID = "h0d-creature-builder";
-const MODULE_VERSION = "0.2.2";
+const MODULE_VERSION = "0.2.3";
 const ROOT_FOLDER = "H0D — Faune générée";
 const SOURCE_BIOME = "Dent d’Ambre";
 const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
@@ -26,6 +26,41 @@ const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
 
 const CREATURES = new Map();
 const MUTATIONS = new Map();
+
+const CREATURE_PERCEPTION_PROFILES = Object.freeze({
+  "petit-nuisible":          {per:2, range:15, sense:"Ouïe / odorat", senseRange:15},
+  "cerf-herbivore-rapide":   {per:5, range:30, sense:"Ouïe / odorat", senseRange:45},
+  "chien-sauvage":           {per:4, range:30, sense:"Odorat", senseRange:45},
+  "rapace-charognard":       {per:5, range:60, sense:"Vue perçante", senseRange:90},
+  "serpent-venimeux":        {per:4, range:15, sense:"Vibrations / thermoréception", senseRange:15},
+  "sanglier-territorial":    {per:4, range:30, sense:"Odorat", senseRange:45},
+  "loup-solitaire":          {per:5, range:45, sense:"Odorat / ouïe", senseRange:60},
+  "nuee-insectes":           {per:2, range:15, sense:"Vibrations", senseRange:15},
+  "meute-loups":             {per:6, range:45, sense:"Odorat / ouïe", senseRange:60},
+  "lynx-felin-sauvage":      {per:5, range:30, sense:"Ouïe fine", senseRange:45},
+  "grand-cervide-alpha":     {per:5, range:45, sense:"Ouïe / odorat", senseRange:60},
+  "ours-brun":               {per:4, range:30, sense:"Odorat", senseRange:45},
+  "rat-pale-contamine":      {per:3, range:20, sense:"Odorat altéré", senseRange:20},
+  "serpent-venin-rouge":     {per:5, range:20, sense:"Thermoréception", senseRange:20},
+  "chien-sauvage-brouille":  {per:5, range:30, sense:"Odorat", senseRange:45},
+  "nuee-insectes-blancs":    {per:3, range:20, sense:"Vibrations", senseRange:20},
+  "loup-focus-parasite":     {per:6, range:45, sense:"Odorat / signal Focus parasite", senseRange:60},
+  "lynx-pale-falaises":      {per:6, range:45, sense:"Vue / ouïe", senseRange:60},
+  "grand-cervide-marque":    {per:6, range:45, sense:"Ouïe / signal GAIA", senseRange:60},
+  "ours-ancien-mutant":      {per:5, range:30, sense:"Odorat", senseRange:45},
+  "predateur-gorges":        {per:6, range:45, sense:"Crête sensorielle", senseRange:60},
+  "bete-alpha-biome":        {per:6, range:45, sense:"Sens prédateur", senseRange:60}
+});
+
+function perceptionPropsForCreature(key) {
+  const p = CREATURE_PERCEPTION_PROFILES[key] ?? {per:3, range:30, sense:"", senseRange:0};
+  return {
+    H0D_Creature_Perception:String(p.per),
+    H0D_Creature_Perception_Portee:String(p.range),
+    H0D_Creature_Sens_Speciaux:p.sense || "",
+    H0D_Creature_Sens_Portee:String(p.senseRange || 0)
+  };
+}
 
 const TEMPLATE_KEYS = {
   actor: "actor-creature",
@@ -68,6 +103,7 @@ function normalizeCreature(def) {
   const out = clone(def);
   out.actor ??= {};
   out.actor.props ??= {};
+  out.actor.props = {...perceptionPropsForCreature(out.key), ...out.actor.props};
   out.weapons = (out.weapons ?? []).map(normalizeEntry);
   out.armor = (out.armor ?? []).map(normalizeEntry);
   out.objects = (out.objects ?? []).map(normalizeEntry);
@@ -3302,6 +3338,38 @@ async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
   return actor;
 }
 
+
+const CREATURE_PERCEPTION_FIELDS = Object.freeze([
+  "H0D_Creature_Perception",
+  "H0D_Creature_Perception_Portee",
+  "H0D_Creature_Sens_Speciaux",
+  "H0D_Creature_Sens_Portee"
+]);
+
+async function syncPerceptionGeneratedCreatures() {
+  if (!game.user?.isGM) throw new Error("Synchronisation PER/DET réservée au MJ.");
+  let actors=0, props=0, skipped=0;
+
+  for (const actor of game.actors ?? []) {
+    if (actor.getFlag(MODULE_ID,"generated") !== true) continue;
+    const key=actor.getFlag(MODULE_ID,"creatureKey");
+    const def=CREATURES.get(key);
+    if (!def) { skipped++; continue; }
+
+    const expected=def.actor?.props ?? {};
+    const update={};
+    for (const field of CREATURE_PERCEPTION_FIELDS) {
+      update[`system.props.${field}`] = clone(expected[field] ?? "");
+    }
+    await actor.update(update);
+    actors++;
+    props += Object.keys(update).length;
+  }
+
+  notify("info",`H0D Faune : PER/DET synchronisées — ${actors} Actor(s), ${props} champ(s), ${skipped} ignoré(s).`);
+  return {actors,props,skipped};
+}
+
 function optionRows(map, emptyLabel) {
   if (!map.size) return `<option value="">${esc(emptyLabel)}</option>`;
   const groups = new Map();
@@ -3368,6 +3436,7 @@ async function openBuilder() {
           restent volontairement à 0.
         </p>
         <button type="button" data-h0d-run><i class="fa-solid fa-paw"></i> Générer</button>
+        <button type="button" data-h0d-sync-perception><i class="fa-solid fa-eye"></i> Synchroniser PER / DET existantes</button>
         <p data-h0d-status role="status" aria-live="polite" style="margin:0;min-height:1.2em;opacity:.8">Tu peux créer plusieurs créatures sans fermer cette fenêtre.</p>
       </div>`,
     buttons:[{action:"close",label:"Fermer",icon:"fa-solid fa-xmark"}],
@@ -3376,7 +3445,23 @@ async function openBuilder() {
       const root=dialog.element?.querySelector(".h0d-creature-builder");
       const button=root?.querySelector("[data-h0d-run]");
       const status=root?.querySelector("[data-h0d-status]");
+      const syncButton=root?.querySelector("[data-h0d-sync-perception]");
       if(!button||!status||button.dataset.ready==="1")return;
+      if(syncButton && syncButton.dataset.ready!=="1"){
+        syncButton.dataset.ready="1";
+        syncButton.addEventListener("click",async()=>{
+          syncButton.disabled=true;
+          status.textContent="Synchronisation PER / DET en cours…";
+          try{
+            const result=await syncPerceptionGeneratedCreatures();
+            status.textContent=`PER / DET : ${result.actors} créature(s) synchronisée(s).`;
+          }catch(err){
+            console.error(MODULE_ID+" | sync perception",err);
+            status.textContent="Erreur : "+(err?.message??err);
+            notify("error","H0D Creature Builder : "+(err?.message??err));
+          }finally{syncButton.disabled=false;}
+        });
+      }
       button.dataset.ready="1";
       let busy=false;
       button.addEventListener("click",async()=>{
@@ -3444,6 +3529,7 @@ Hooks.once("ready", async () => {
   const api = {
     open: openBuilder,
     buildCreature,
+    syncPerception: syncPerceptionGeneratedCreatures,
     registerCreature,
     registerCreatures,
     registerMutation,
