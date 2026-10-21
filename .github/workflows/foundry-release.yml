@@ -2,6 +2,7 @@ name: Build and publish Foundry h0d-creature-builder
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: write
