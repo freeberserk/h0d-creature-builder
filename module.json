@@ -1,8 +1,8 @@
 {
   "id": "h0d-creature-builder",
   "title": "H0D Creature Builder",
-  "description": "Générateur de faune H0D — profils Dent d’Ambre, PER/DET, sens spéciaux et synchronisation ciblée.",
-  "version": "0.2.3",
+  "description": "Générateur de faune H0D — profils Dent d’Ambre, PER/DET, tailles canoniques et synchronisation ciblée.",
+  "version": "0.3.0",
   "authors": [
     {
       "name": "JDR Zero Dawn"
@@ -27,7 +27,7 @@
         "id": "h0d-template-manager",
         "type": "module",
         "compatibility": {
-          "minimum": "0.3.0"
+          "minimum": "1.7.22"
         }
       }
     ]
