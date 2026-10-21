@@ -1,4 +1,4 @@
-H0D Creature Builder v0.2.1
+H0D Creature Builder v0.3.0
 
 Manifest URL :
 https://github.com/freeberserk/h0d-creature-builder/releases/latest/download/module.json
@@ -9,7 +9,7 @@ h0d-creature-builder.zip
 Prérequis :
 - Foundry VTT 14
 - Custom System Builder 6.0.2+
-- H0D Template Manager 0.3.0+
+- H0D Template Manager 1.7.22+
 
 Lancement en jeu :
 macro automatique « H0D — Générateur faune ».
