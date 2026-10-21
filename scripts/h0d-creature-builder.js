@@ -3477,6 +3477,42 @@ async function syncPerceptionGeneratedCreatures() {
   return {actors,props,skipped};
 }
 
+async function syncSizeGeneratedCreatures() {
+  if (!game.user?.isGM) throw new Error("Synchronisation des tailles réservée au MJ.");
+  let checked=0, actorsUpdated=0, tokensUpdated=0, skipped=0;
+
+  for (const actor of game.actors ?? []) {
+    if (actor.getFlag(MODULE_ID,"generated") !== true) continue;
+    const key=actor.getFlag(MODULE_ID,"creatureKey");
+    const def=CREATURES.get(key);
+    if (!def) { skipped++; continue; }
+
+    checked++;
+    const sizeCategory=String(def.actor?.props?.H0D_Creature_Taille || "Moyenne");
+    const {width,height}=tokenDimensionsForCreature(def);
+    const update={};
+
+    if (String(actor.system?.props?.H0D_Creature_Taille || "")!==sizeCategory) {
+      update["system.props.H0D_Creature_Taille"]=sizeCategory;
+    }
+    if (Number(actor.prototypeToken?.width)!==width) update["prototypeToken.width"]=width;
+    if (Number(actor.prototypeToken?.height)!==height) update["prototypeToken.height"]=height;
+
+    update[`flags.${MODULE_ID}.tokenWidth`]=width;
+    update[`flags.${MODULE_ID}.tokenHeight`]=height;
+    update[`flags.${MODULE_ID}.sizeCategory`]=sizeCategory;
+
+    const meaningful=Object.keys(update).some(k=>!k.startsWith(`flags.${MODULE_ID}.`));
+    await actor.update(update);
+    if (meaningful) actorsUpdated++;
+
+    tokensUpdated+=await syncPlacedTokensToCanonicalSize(actor,def);
+  }
+
+  notify("info",`H0D Faune : tailles synchronisées — ${checked} Actor(s) vérifié(s), ${actorsUpdated} Actor(s) corrigé(s), ${tokensUpdated} token(s) placé(s) redimensionné(s), ${skipped} ignoré(s).`);
+  return {checked,actorsUpdated,tokensUpdated,skipped};
+}
+
 function optionRows(map, emptyLabel) {
   if (!map.size) return `<option value="">${esc(emptyLabel)}</option>`;
   const groups = new Map();
@@ -3544,6 +3580,7 @@ async function openBuilder() {
         </p>
         <button type="button" data-h0d-run><i class="fa-solid fa-paw"></i> Générer</button>
         <button type="button" data-h0d-sync-perception><i class="fa-solid fa-eye"></i> Synchroniser PER / DET existantes</button>
+        <button type="button" data-h0d-sync-size><i class="fa-solid fa-expand"></i> Synchroniser tailles existantes</button>
         <p data-h0d-status role="status" aria-live="polite" style="margin:0;min-height:1.2em;opacity:.8">Tu peux créer plusieurs créatures sans fermer cette fenêtre.</p>
       </div>`,
     buttons:[{action:"close",label:"Fermer",icon:"fa-solid fa-xmark"}],
@@ -3553,6 +3590,7 @@ async function openBuilder() {
       const button=root?.querySelector("[data-h0d-run]");
       const status=root?.querySelector("[data-h0d-status]");
       const syncButton=root?.querySelector("[data-h0d-sync-perception]");
+      const sizeButton=root?.querySelector("[data-h0d-sync-size]");
       if(!button||!status||button.dataset.ready==="1")return;
       if(syncButton && syncButton.dataset.ready!=="1"){
         syncButton.dataset.ready="1";
@@ -3567,6 +3605,21 @@ async function openBuilder() {
             status.textContent="Erreur : "+(err?.message??err);
             notify("error","H0D Creature Builder : "+(err?.message??err));
           }finally{syncButton.disabled=false;}
+        });
+      }
+      if(sizeButton && sizeButton.dataset.ready!=="1"){
+        sizeButton.dataset.ready="1";
+        sizeButton.addEventListener("click",async()=>{
+          sizeButton.disabled=true;
+          status.textContent="Synchronisation des tailles en cours…";
+          try{
+            const result=await syncSizeGeneratedCreatures();
+            status.textContent=`Tailles : ${result.actorsUpdated} Actor(s) corrigé(s), ${result.tokensUpdated} token(s) redimensionné(s).`;
+          }catch(err){
+            console.error(MODULE_ID+" | sync sizes",err);
+            status.textContent="Erreur : "+(err?.message??err);
+            notify("error","H0D Creature Builder : "+(err?.message??err));
+          }finally{sizeButton.disabled=false;}
         });
       }
       button.dataset.ready="1";
@@ -3637,6 +3690,7 @@ Hooks.once("ready", async () => {
     open: openBuilder,
     buildCreature,
     syncPerception: syncPerceptionGeneratedCreatures,
+    syncSizes: syncSizeGeneratedCreatures,
     registerCreature,
     registerCreatures,
     registerMutation,
