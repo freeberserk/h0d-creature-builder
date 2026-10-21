@@ -3298,6 +3298,59 @@ function assembledEntries(def, mutationKeys=[]) {
   return rows;
 }
 
+function tokenDimensionsForCreature(def) {
+  const actor=def?.actor ?? {};
+  const explicit=actor.tokenSize;
+
+  if (Number.isFinite(Number(explicit)) && Number(explicit)>0) {
+    const n=Number(explicit);
+    return {width:n,height:n};
+  }
+  if (explicit && typeof explicit==="object") {
+    const width=Number(explicit.width);
+    const height=Number(explicit.height);
+    if (Number.isFinite(width) && width>0 && Number.isFinite(height) && height>0) {
+      return {width,height};
+    }
+  }
+
+  const size=String(actor.props?.H0D_Creature_Taille || "Moyenne");
+  const tokenSize=CREATURE_TOKEN_SIZE_BY_CATEGORY[size];
+  if (!tokenSize) throw new Error(`${def?.label || def?.key || "Créature"} : taille H0D inconnue (${size}).`);
+  return {width:tokenSize,height:tokenSize};
+}
+
+async function applyCanonicalPrototypeTokenSize(actor,def) {
+  const {width,height}=tokenDimensionsForCreature(def);
+  const sizeCategory=String(def?.actor?.props?.H0D_Creature_Taille || "Moyenne");
+  await actor.update({
+    "prototypeToken.width":width,
+    "prototypeToken.height":height,
+    [`flags.${MODULE_ID}.tokenWidth`]:width,
+    [`flags.${MODULE_ID}.tokenHeight`]:height,
+    [`flags.${MODULE_ID}.sizeCategory`]:sizeCategory
+  });
+  return {width,height,sizeCategory};
+}
+
+async function syncPlacedTokensToCanonicalSize(actor,def) {
+  const {width,height}=tokenDimensionsForCreature(def);
+  let changed=0;
+  for (const scene of game.scenes ?? []) {
+    const updates=[];
+    for (const token of scene.tokens ?? []) {
+      if (token.actorId!==actor.id) continue;
+      if (Number(token.width)===width && Number(token.height)===height) continue;
+      updates.push({_id:token.id,width,height});
+    }
+    if (updates.length) {
+      await scene.updateEmbeddedDocuments("Token",updates);
+      changed+=updates.length;
+    }
+  }
+  return changed;
+}
+
 async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
   const state = templateState();
   if (!state.ok) throw new Error(state.message);
