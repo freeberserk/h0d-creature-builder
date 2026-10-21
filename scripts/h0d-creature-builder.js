@@ -3384,13 +3384,20 @@ async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
 
   if (!actor) {
     const sys = systemFromTemplate(actorTemplate);
+    const tokenSize=tokenDimensionsForCreature(def);
     const [created] = await Actor.implementation.createDocuments([{
       name:def.label,
       type:"character",
       img:def.img || actorTemplate.img || "systems/custom-system-builder/img/template-logo.svg",
       folder:threatFolder.id,
       system:sys,
-      prototypeToken:{...clone(actorTemplate.prototypeToken ?? {}), name:def.label, actorLink:false},
+      prototypeToken:{
+        ...clone(actorTemplate.prototypeToken ?? {}),
+        name:def.label,
+        actorLink:false,
+        width:tokenSize.width,
+        height:tokenSize.height
+      },
       flags:{[MODULE_ID]:{generated:true, creatureKey, sourceTemplateId:actorTemplate.id, sourceDataset:SOURCE_DATASET, sourceGroup:def.group || ""}}
     }]);
     actor = created;
@@ -3411,6 +3418,12 @@ async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
     [`flags.${MODULE_ID}.sourceDataset`]:SOURCE_DATASET,
     [`flags.${MODULE_ID}.sourceGroup`]:def.group || ""
   });
+
+  const canonicalTokenSize=await applyCanonicalPrototypeTokenSize(actor,def);
+  const resizedSceneTokens=await syncPlacedTokensToCanonicalSize(actor,def);
+  if (resizedSceneTokens>0) {
+    notify("info",`${def.label} : ${resizedSceneTokens} token(s) placé(s) synchronisé(s) en ${canonicalTokenSize.width}×${canonicalTokenSize.height}.`);
+  }
 
   const rows = assembledEntries(def, mutationKeys);
   const payload = rows.map(({kind,entry}) => {
