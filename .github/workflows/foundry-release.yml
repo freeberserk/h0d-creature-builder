@@ -15,6 +15,7 @@ jobs:
           node --check scripts/h0d-creature-builder.js
           node tests/batch-dialog.mjs
           node tests/perception-sync.mjs
+          node tests/creature-size-sync.mjs
           python3 -m json.tool module.json > /dev/null
       - name: Package and publish release
         env:
