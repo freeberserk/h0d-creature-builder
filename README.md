@@ -1,5 +1,33 @@
 # H0D Creature Builder
 
+## v0.3.0 — Tailles canoniques de la faune
+
+La taille de la faune est désormais indépendante du niveau de Menace. Chaque profil porte `H0D_Creature_Taille` et le Builder convertit cette taille en empreinte Foundry.
+
+| Taille | Token |
+| --- | ---: |
+| Infime / Minuscule / Très petite / Petite / Moyenne | 1×1 |
+| Grande | 2×2 |
+| Très grande | 3×3 |
+| Gigantesque | 4×4 |
+| Colossale | 6×6 |
+
+Les profils de groupe utilisent aussi une empreinte plus large : les nuées d'insectes et la meute de loups sont `Grande` (2×2).
+
+Exemples canoniques :
+- Ours brun : **Grande → 2×2**, comme l'empreinte du Dent de Scie.
+- Grand cervidé alpha / marqué : **Grande → 2×2**.
+- Prédateur des gorges : **Grande → 2×2**.
+- Ours ancien mutant : **Très grande → 3×3**.
+- Bête alpha de biome : **Très grande → 3×3**.
+
+Le Builder met à jour le `prototypeToken.width/height` lors d'une création ou d'une mise à jour, puis redimensionne les tokens déjà placés dans les scènes. Un bouton **Synchroniser tailles existantes** permet d'appliquer seulement cette donnée aux Actors générés sans réinitialiser leurs PV, équipements ou états.
+
+Un profil futur peut surcharger son empreinte avec `actor.tokenSize`, soit par un nombre carré, soit par `{width,height}`.
+
+### Dépendance
+H0D Template Manager **1.7.22+** est requis pour le template Créature / PNJ v1.27 et son champ `H0D_Creature_Taille`.
+
 ## v0.2.2 — Création de créatures en série
 
 Fenêtre persistante après génération, avec sélections conservées, progression et protection contre les doubles clics. Par défaut les Actors existants sont conservés ; mise à jour et recréation sur confirmation uniquement.
