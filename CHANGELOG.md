@@ -1,3 +1,16 @@
+## 0.3.0 — Tailles canoniques de la faune
+
+- Ajoute une taille physique canonique à chacun des 22 profils de faune Dent d'Ambre.
+- La taille est indépendante de la Menace.
+- Conversion : jusqu'à Moyenne = 1×1, Grande = 2×2, Très grande = 3×3, Gigantesque = 4×4, Colossale = 6×6.
+- Ours brun, grands cervidés, prédateur des gorges, meute de loups et nuées principales utilisent notamment une empreinte 2×2.
+- Ours ancien mutant et Bête alpha de biome utilisent une empreinte 3×3.
+- Les créations et mises à jour synchronisent `prototypeToken.width/height`.
+- Les tokens déjà placés sur les scènes sont redimensionnés vers l'empreinte canonique.
+- Ajoute **Synchroniser tailles existantes**, action ciblée qui ne touche pas aux autres données de séance.
+- API : `game.h0dCreatureBuilder.syncSizes()`.
+- Support d'un override futur `actor.tokenSize` carré ou rectangulaire.
+- Dépend désormais de H0D Template Manager 1.7.22+.
 ## 0.2.3 — Perception, DET et sens de la faune
 
 - Chaque profil de faune Dent d’Ambre reçoit une Perception, une portée normale et, si pertinent, un sens spécial avec sa portée.
