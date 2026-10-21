@@ -1,5 +1,5 @@
 const MODULE_ID = "h0d-creature-builder";
-const MODULE_VERSION = "0.2.3";
+const MODULE_VERSION = "0.3.0";
 const ROOT_FOLDER = "H0D — Faune générée";
 const SOURCE_BIOME = "Dent d’Ambre";
 const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
@@ -26,6 +26,47 @@ const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
 
 const CREATURES = new Map();
 const MUTATIONS = new Map();
+
+const CREATURE_TOKEN_SIZE_BY_CATEGORY = Object.freeze({
+  Infime:1,
+  Minuscule:1,
+  TresPetite:1,
+  Petite:1,
+  Moyenne:1,
+  Grande:2,
+  TresGrande:3,
+  Gigantesque:4,
+  Colossale:6
+});
+
+const CREATURE_SIZE_PROFILES = Object.freeze({
+  "petit-nuisible":"TresPetite",
+  "cerf-herbivore-rapide":"Moyenne",
+  "chien-sauvage":"Moyenne",
+  "rapace-charognard":"Petite",
+  "serpent-venimeux":"Petite",
+  "sanglier-territorial":"Moyenne",
+  "loup-solitaire":"Moyenne",
+  "nuee-insectes":"Grande",
+  "meute-loups":"Grande",
+  "lynx-felin-sauvage":"Moyenne",
+  "grand-cervide-alpha":"Grande",
+  "ours-brun":"Grande",
+  "rat-pale-contamine":"TresPetite",
+  "serpent-venin-rouge":"Moyenne",
+  "chien-sauvage-brouille":"Moyenne",
+  "nuee-insectes-blancs":"Grande",
+  "loup-focus-parasite":"Moyenne",
+  "lynx-pale-falaises":"Moyenne",
+  "grand-cervide-marque":"Grande",
+  "ours-ancien-mutant":"TresGrande",
+  "predateur-gorges":"Grande",
+  "bete-alpha-biome":"TresGrande"
+});
+
+function sizePropsForCreature(key) {
+  return {H0D_Creature_Taille:CREATURE_SIZE_PROFILES[key] ?? "Moyenne"};
+}
 
 const CREATURE_PERCEPTION_PROFILES = Object.freeze({
   "petit-nuisible":          {per:2, range:15, sense:"Ouïe / odorat", senseRange:15},
@@ -103,7 +144,7 @@ function normalizeCreature(def) {
   const out = clone(def);
   out.actor ??= {};
   out.actor.props ??= {};
-  out.actor.props = {...perceptionPropsForCreature(out.key), ...out.actor.props};
+  out.actor.props = {...perceptionPropsForCreature(out.key), ...sizePropsForCreature(out.key), ...out.actor.props};
   out.weapons = (out.weapons ?? []).map(normalizeEntry);
   out.armor = (out.armor ?? []).map(normalizeEntry);
   out.objects = (out.objects ?? []).map(normalizeEntry);
@@ -3257,6 +3298,59 @@ function assembledEntries(def, mutationKeys=[]) {
   return rows;
 }
 
+function tokenDimensionsForCreature(def) {
+  const actor=def?.actor ?? {};
+  const explicit=actor.tokenSize;
+
+  if (Number.isFinite(Number(explicit)) && Number(explicit)>0) {
+    const n=Number(explicit);
+    return {width:n,height:n};
+  }
+  if (explicit && typeof explicit==="object") {
+    const width=Number(explicit.width);
+    const height=Number(explicit.height);
+    if (Number.isFinite(width) && width>0 && Number.isFinite(height) && height>0) {
+      return {width,height};
+    }
+  }
+
+  const size=String(actor.props?.H0D_Creature_Taille || "Moyenne");
+  const tokenSize=CREATURE_TOKEN_SIZE_BY_CATEGORY[size];
+  if (!tokenSize) throw new Error(`${def?.label || def?.key || "Créature"} : taille H0D inconnue (${size}).`);
+  return {width:tokenSize,height:tokenSize};
+}
+
+async function applyCanonicalPrototypeTokenSize(actor,def) {
+  const {width,height}=tokenDimensionsForCreature(def);
+  const sizeCategory=String(def?.actor?.props?.H0D_Creature_Taille || "Moyenne");
+  await actor.update({
+    "prototypeToken.width":width,
+    "prototypeToken.height":height,
+    [`flags.${MODULE_ID}.tokenWidth`]:width,
+    [`flags.${MODULE_ID}.tokenHeight`]:height,
+    [`flags.${MODULE_ID}.sizeCategory`]:sizeCategory
+  });
+  return {width,height,sizeCategory};
+}
+
+async function syncPlacedTokensToCanonicalSize(actor,def) {
+  const {width,height}=tokenDimensionsForCreature(def);
+  let changed=0;
+  for (const scene of game.scenes ?? []) {
+    const updates=[];
+    for (const token of scene.tokens ?? []) {
+      if (token.actorId!==actor.id) continue;
+      if (Number(token.width)===width && Number(token.height)===height) continue;
+      updates.push({_id:token.id,width,height});
+    }
+    if (updates.length) {
+      await scene.updateEmbeddedDocuments("Token",updates);
+      changed+=updates.length;
+    }
+  }
+  return changed;
+}
+
 async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
   const state = templateState();
   if (!state.ok) throw new Error(state.message);
@@ -3290,13 +3384,20 @@ async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
 
   if (!actor) {
     const sys = systemFromTemplate(actorTemplate);
+    const tokenSize=tokenDimensionsForCreature(def);
     const [created] = await Actor.implementation.createDocuments([{
       name:def.label,
       type:"character",
       img:def.img || actorTemplate.img || "systems/custom-system-builder/img/template-logo.svg",
       folder:threatFolder.id,
       system:sys,
-      prototypeToken:{...clone(actorTemplate.prototypeToken ?? {}), name:def.label, actorLink:false},
+      prototypeToken:{
+        ...clone(actorTemplate.prototypeToken ?? {}),
+        name:def.label,
+        actorLink:false,
+        width:tokenSize.width,
+        height:tokenSize.height
+      },
       flags:{[MODULE_ID]:{generated:true, creatureKey, sourceTemplateId:actorTemplate.id, sourceDataset:SOURCE_DATASET, sourceGroup:def.group || ""}}
     }]);
     actor = created;
@@ -3317,6 +3418,12 @@ async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
     [`flags.${MODULE_ID}.sourceDataset`]:SOURCE_DATASET,
     [`flags.${MODULE_ID}.sourceGroup`]:def.group || ""
   });
+
+  const canonicalTokenSize=await applyCanonicalPrototypeTokenSize(actor,def);
+  const resizedSceneTokens=await syncPlacedTokensToCanonicalSize(actor,def);
+  if (resizedSceneTokens>0) {
+    notify("info",`${def.label} : ${resizedSceneTokens} token(s) placé(s) synchronisé(s) en ${canonicalTokenSize.width}×${canonicalTokenSize.height}.`);
+  }
 
   const rows = assembledEntries(def, mutationKeys);
   const payload = rows.map(({kind,entry}) => {
@@ -3368,6 +3475,42 @@ async function syncPerceptionGeneratedCreatures() {
 
   notify("info",`H0D Faune : PER/DET synchronisées — ${actors} Actor(s), ${props} champ(s), ${skipped} ignoré(s).`);
   return {actors,props,skipped};
+}
+
+async function syncSizeGeneratedCreatures() {
+  if (!game.user?.isGM) throw new Error("Synchronisation des tailles réservée au MJ.");
+  let checked=0, actorsUpdated=0, tokensUpdated=0, skipped=0;
+
+  for (const actor of game.actors ?? []) {
+    if (actor.getFlag(MODULE_ID,"generated") !== true) continue;
+    const key=actor.getFlag(MODULE_ID,"creatureKey");
+    const def=CREATURES.get(key);
+    if (!def) { skipped++; continue; }
+
+    checked++;
+    const sizeCategory=String(def.actor?.props?.H0D_Creature_Taille || "Moyenne");
+    const {width,height}=tokenDimensionsForCreature(def);
+    const update={};
+
+    if (String(actor.system?.props?.H0D_Creature_Taille || "")!==sizeCategory) {
+      update["system.props.H0D_Creature_Taille"]=sizeCategory;
+    }
+    if (Number(actor.prototypeToken?.width)!==width) update["prototypeToken.width"]=width;
+    if (Number(actor.prototypeToken?.height)!==height) update["prototypeToken.height"]=height;
+
+    update[`flags.${MODULE_ID}.tokenWidth`]=width;
+    update[`flags.${MODULE_ID}.tokenHeight`]=height;
+    update[`flags.${MODULE_ID}.sizeCategory`]=sizeCategory;
+
+    const meaningful=Object.keys(update).some(k=>!k.startsWith(`flags.${MODULE_ID}.`));
+    await actor.update(update);
+    if (meaningful) actorsUpdated++;
+
+    tokensUpdated+=await syncPlacedTokensToCanonicalSize(actor,def);
+  }
+
+  notify("info",`H0D Faune : tailles synchronisées — ${checked} Actor(s) vérifié(s), ${actorsUpdated} Actor(s) corrigé(s), ${tokensUpdated} token(s) placé(s) redimensionné(s), ${skipped} ignoré(s).`);
+  return {checked,actorsUpdated,tokensUpdated,skipped};
 }
 
 function optionRows(map, emptyLabel) {
@@ -3437,6 +3580,7 @@ async function openBuilder() {
         </p>
         <button type="button" data-h0d-run><i class="fa-solid fa-paw"></i> Générer</button>
         <button type="button" data-h0d-sync-perception><i class="fa-solid fa-eye"></i> Synchroniser PER / DET existantes</button>
+        <button type="button" data-h0d-sync-size><i class="fa-solid fa-expand"></i> Synchroniser tailles existantes</button>
         <p data-h0d-status role="status" aria-live="polite" style="margin:0;min-height:1.2em;opacity:.8">Tu peux créer plusieurs créatures sans fermer cette fenêtre.</p>
       </div>`,
     buttons:[{action:"close",label:"Fermer",icon:"fa-solid fa-xmark"}],
@@ -3446,6 +3590,7 @@ async function openBuilder() {
       const button=root?.querySelector("[data-h0d-run]");
       const status=root?.querySelector("[data-h0d-status]");
       const syncButton=root?.querySelector("[data-h0d-sync-perception]");
+      const sizeButton=root?.querySelector("[data-h0d-sync-size]");
       if(!button||!status||button.dataset.ready==="1")return;
       if(syncButton && syncButton.dataset.ready!=="1"){
         syncButton.dataset.ready="1";
@@ -3460,6 +3605,21 @@ async function openBuilder() {
             status.textContent="Erreur : "+(err?.message??err);
             notify("error","H0D Creature Builder : "+(err?.message??err));
           }finally{syncButton.disabled=false;}
+        });
+      }
+      if(sizeButton && sizeButton.dataset.ready!=="1"){
+        sizeButton.dataset.ready="1";
+        sizeButton.addEventListener("click",async()=>{
+          sizeButton.disabled=true;
+          status.textContent="Synchronisation des tailles en cours…";
+          try{
+            const result=await syncSizeGeneratedCreatures();
+            status.textContent=`Tailles : ${result.actorsUpdated} Actor(s) corrigé(s), ${result.tokensUpdated} token(s) redimensionné(s).`;
+          }catch(err){
+            console.error(MODULE_ID+" | sync sizes",err);
+            status.textContent="Erreur : "+(err?.message??err);
+            notify("error","H0D Creature Builder : "+(err?.message??err));
+          }finally{sizeButton.disabled=false;}
         });
       }
       button.dataset.ready="1";
@@ -3530,6 +3690,7 @@ Hooks.once("ready", async () => {
     open: openBuilder,
     buildCreature,
     syncPerception: syncPerceptionGeneratedCreatures,
+    syncSizes: syncSizeGeneratedCreatures,
     registerCreature,
     registerCreatures,
     registerMutation,
