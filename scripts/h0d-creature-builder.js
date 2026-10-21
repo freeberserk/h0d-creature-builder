@@ -1,5 +1,5 @@
 const MODULE_ID = "h0d-creature-builder";
-const MODULE_VERSION = "0.2.3";
+const MODULE_VERSION = "0.3.0";
 const ROOT_FOLDER = "H0D — Faune générée";
 const SOURCE_BIOME = "Dent d’Ambre";
 const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
@@ -26,6 +26,47 @@ const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
 
 const CREATURES = new Map();
 const MUTATIONS = new Map();
+
+const CREATURE_TOKEN_SIZE_BY_CATEGORY = Object.freeze({
+  Infime:1,
+  Minuscule:1,
+  TresPetite:1,
+  Petite:1,
+  Moyenne:1,
+  Grande:2,
+  TresGrande:3,
+  Gigantesque:4,
+  Colossale:6
+});
+
+const CREATURE_SIZE_PROFILES = Object.freeze({
+  "petit-nuisible":"TresPetite",
+  "cerf-herbivore-rapide":"Moyenne",
+  "chien-sauvage":"Moyenne",
+  "rapace-charognard":"Petite",
+  "serpent-venimeux":"Petite",
+  "sanglier-territorial":"Moyenne",
+  "loup-solitaire":"Moyenne",
+  "nuee-insectes":"Grande",
+  "meute-loups":"Grande",
+  "lynx-felin-sauvage":"Moyenne",
+  "grand-cervide-alpha":"Grande",
+  "ours-brun":"Grande",
+  "rat-pale-contamine":"TresPetite",
+  "serpent-venin-rouge":"Moyenne",
+  "chien-sauvage-brouille":"Moyenne",
+  "nuee-insectes-blancs":"Grande",
+  "loup-focus-parasite":"Moyenne",
+  "lynx-pale-falaises":"Moyenne",
+  "grand-cervide-marque":"Grande",
+  "ours-ancien-mutant":"TresGrande",
+  "predateur-gorges":"Grande",
+  "bete-alpha-biome":"TresGrande"
+});
+
+function sizePropsForCreature(key) {
+  return {H0D_Creature_Taille:CREATURE_SIZE_PROFILES[key] ?? "Moyenne"};
+}
 
 const CREATURE_PERCEPTION_PROFILES = Object.freeze({
   "petit-nuisible":          {per:2, range:15, sense:"Ouïe / odorat", senseRange:15},
@@ -103,7 +144,7 @@ function normalizeCreature(def) {
   const out = clone(def);
   out.actor ??= {};
   out.actor.props ??= {};
-  out.actor.props = {...perceptionPropsForCreature(out.key), ...out.actor.props};
+  out.actor.props = {...perceptionPropsForCreature(out.key), ...sizePropsForCreature(out.key), ...out.actor.props};
   out.weapons = (out.weapons ?? []).map(normalizeEntry);
   out.armor = (out.armor ?? []).map(normalizeEntry);
   out.objects = (out.objects ?? []).map(normalizeEntry);
