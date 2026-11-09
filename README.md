@@ -1,3 +1,7 @@
+## 0.3.3 — Macros personnalisées protégées
+
+Au chargement, le module identifie son lanceur grâce au flag de propriété `flags.h0d-creature-builder.launcher`. Une ancienne macro portant exactement le nom ET la commande officiels est marquée sans changement. Une macro personnalisée portant le même nom n'est jamais réécrite : le module crée au besoin une macro séparée « (module officiel) ». Une modification manuelle d'une macro déjà marquée est conservée au prochain démarrage ; le module n'en modifie plus la commande. Aucun nom seul ne donne le droit d'écraser une macro.
+
 # H0D Creature Builder
 
 ## v0.3.2 — XP des créatures
