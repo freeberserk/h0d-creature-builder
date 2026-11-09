@@ -1,5 +1,15 @@
 # H0D Creature Builder
 
+## v0.3.2 — XP des créatures
+
+- Les 22 profils de faune Dent d'Ambre reçoivent un coût XP issu du barème Menace : M0=0, M1=15, M2=40, M3=80, M4=140, M5=250, M7=450.
+- Les coûts individuels déjà documentés dans l'Encounter Builder priment : sanglier territorial 35, loup solitaire 35, lynx 35, ours brun 150 et nuée d'insectes 45 XP.
+- Le tarif provisoire de 20 XP du serpent venimeux n'est pas repris : Menace 1 = 15 XP selon le barème.
+- Le bouton **Synchroniser XP manquants (0 ou vides)** corrige uniquement les XP manquants des Actors générés et, si nécessaire, des Tokens non liés. Les XP positifs personnalisés, PV, états, objets et autres statistiques sont conservés.
+- API : `game.h0dCreatureBuilder.syncXP()`.
+- Ces XP sont des **coûts de rencontre**, pas des points d'expérience de progression automatiquement distribués.
+
+
 ## v0.3.0 — Tailles canoniques de la faune
 
 La taille de la faune est désormais indépendante du niveau de Menace. Chaque profil porte `H0D_Creature_Taille` et le Builder convertit cette taille en empreinte Foundry.

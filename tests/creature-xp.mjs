@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const src=readFileSync(new URL("../scripts/h0d-creature-builder.js",import.meta.url),"utf8");
+const table=src.match(/const CREATURE_XP_BY_MENACE = Object\.freeze\((\{[\s\S]*?\})\);/);
+const overrides=src.match(/const CREATURE_XP_DOCUMENTED = Object\.freeze\((\{[\s\S]*?\})\);/);
+assert.ok(table && overrides, "Barème de Menace et sources individuelles requis.");
+assert.deepEqual(JSON.parse(table[1]),{"0":0,"1":15,"2":40,"3":80,"4":140,"5":250,"6":325,"7":450,"8":650,"9":850,"10":1100});
+assert.deepEqual(JSON.parse(overrides[1]),{"sanglier-territorial":35,"loup-solitaire":35,"lynx-felin-sauvage":35,"ours-brun":150,"nuee-insectes":45});
+assert.equal([...src.matchAll(/"H0D_Creature_XP": "0"/g)].length,22);
+assert.match(src,/registerCreatures\(DENT_AMBRE_CREATURES\.map\(applyDentAmbreXP\)\)/);
+assert.match(src,/def\.actor\.props\.H0D_Creature_XP = String\(xp\)/);
+assert.match(src,/isUnassignedXP\(old\)/);
+assert.match(src,/data-h0d-sync-xp/);
+assert.match(src,/syncXP: syncXPGeneratedCreatures/);
+assert.match(src,/synthetic\.update\(\{"system\.props\.H0D_Creature_XP":expected\}\)/);
+console.log("Creature XP mapping and safe sync OK");

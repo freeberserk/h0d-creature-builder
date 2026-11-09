@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 const m=JSON.parse(readFileSync(new URL("../module.json",import.meta.url),"utf8"));
 assert.equal(m.id,"h0d-creature-builder");
-assert.equal(m.version,"0.3.1");
+assert.equal(m.version,"0.3.2");
 assert.ok(!Object.hasOwn(m.relationships,"modules"),"Ancien champ relationships.modules interdit.");
 assert.ok(Array.isArray(m.relationships.requires),"Foundry exige relationships.requires pour les dépendances.");
 const refs=m.relationships.requires.filter(r=>r.id==="h0d-template-manager");

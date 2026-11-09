@@ -1,3 +1,10 @@
+## 0.3.2 — XP de la faune
+
+- Ajoute les XP validés par Menace et les cinq coûts individuels documentés à la génération des 22 profils de faune.
+- Corrige les notes qui présentaient à tort l'XP comme indéterminé.
+- Ajoute une synchronisation explicite des seules valeurs XP à 0 ou vides, sans écraser les XP personnalisés non nuls, les PV, l'équipement ou les états.
+- Ajoute un test XP exécuté dans le packaging.
+
 ## 0.3.1 — Correction des dépendances Foundry VTT 14
 - Déclare H0D Template Manager comme dépendance requise dans `relationships.requires` (au lieu de `relationships.modules`).
 - Ajoute l'URL du manifeste officiel de H0D Template Manager, en conservant la version minimale `1.7.22` déjà exigée.

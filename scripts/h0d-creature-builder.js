@@ -1,5 +1,5 @@
 const MODULE_ID = "h0d-creature-builder";
-const MODULE_VERSION = "0.3.1";
+const MODULE_VERSION = "0.3.2";
 const ROOT_FOLDER = "H0D — Faune générée";
 const SOURCE_BIOME = "Dent d’Ambre";
 const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
@@ -26,6 +26,40 @@ const SOURCE_DATASET = "Faune_Dent_d_Ambre_Foundry-1.pdf";
 
 const CREATURES = new Map();
 const MUTATIONS = new Map();
+
+// XP : coût de rencontre H0D. Les montants individuels confirmés priment
+// sur le barème général par Menace ; les montants provisoires sont exclus.
+const CREATURE_XP_BY_MENACE = Object.freeze({
+  "0":0,"1":15,"2":40,"3":80,"4":140,"5":250,"6":325,
+  "7":450,"8":650,"9":850,"10":1100
+});
+const CREATURE_XP_DOCUMENTED = Object.freeze({
+  "sanglier-territorial":35,
+  "loup-solitaire":35,
+  "lynx-felin-sauvage":35,
+  "ours-brun":150,
+  "nuee-insectes":45
+});
+function canonicalXPForCreature(def) {
+  const menace = Number(def?.actor?.props?.H0D_Creature_Menace);
+  const value = Object.hasOwn(CREATURE_XP_DOCUMENTED, def.key)
+    ? CREATURE_XP_DOCUMENTED[def.key] : CREATURE_XP_BY_MENACE[menace];
+  if (!Number.isInteger(value) || value < 0)
+    throw new Error(`Aucun XP validé pour ${def?.label || def?.key} (Menace ${menace}).`);
+  return value;
+}
+function applyDentAmbreXP(def) {
+  const xp = canonicalXPForCreature(def);
+  def.actor.props.H0D_Creature_XP = String(xp);
+  const origin = Object.hasOwn(CREATURE_XP_DOCUMENTED, def.key)
+    ? "le coût individuel documenté dans Encounter Builder"
+    : "le barème de Menace de la campagne";
+  const oldNote = "Initiative, sauvegardes, caractéristiques et XP ne sont pas chiffrés dans cette fiche source : laissés à 0 dans le générateur.";
+  def.actor.props.H0D_Creature_Notes = String(def.actor.props.H0D_Creature_Notes ?? "").replace(
+    oldNote, `Initiative, sauvegardes et caractéristiques non chiffrées dans la fiche source : conservées à 0. XP : ${xp}, selon ${origin}.`
+  );
+  return def;
+}
 
 const CREATURE_TOKEN_SIZE_BY_CATEGORY = Object.freeze({
   Infime:1,
@@ -3232,7 +3266,7 @@ const DENT_AMBRE_CREATURES = [
 
 function seedDentAmbreData() {
   registerMutations(DENT_AMBRE_MUTATIONS);
-  registerCreatures(DENT_AMBRE_CREATURES);
+  registerCreatures(DENT_AMBRE_CREATURES.map(applyDentAmbreXP));
 }
 seedDentAmbreData();
 
@@ -3477,6 +3511,42 @@ async function syncPerceptionGeneratedCreatures() {
   return {actors,props,skipped};
 }
 
+function isUnassignedXP(value) {
+  return value === null || value === undefined || String(value).trim() === "" || Number(value) === 0;
+}
+async function syncXPGeneratedCreatures() {
+  if (!game.user?.isGM) throw new Error("Synchronisation XP réservée au MJ.");
+  let checked=0, actorsUpdated=0, tokensUpdated=0, preserved=0, skipped=0;
+  for (const actor of game.actors ?? []) {
+    if (actor.getFlag(MODULE_ID,"generated") !== true) continue;
+    const def=CREATURES.get(actor.getFlag(MODULE_ID,"creatureKey"));
+    if (!def) { skipped++; continue; }
+    checked++;
+    const expected=String(def.actor?.props?.H0D_Creature_XP ?? "");
+    if (!expected || !Number.isFinite(Number(expected))) { skipped++; continue; }
+    const old=actor.system?.props?.H0D_Creature_XP;
+    if (Number(expected)>0 && isUnassignedXP(old)) {
+      await actor.update({"system.props.H0D_Creature_XP":expected});
+      actorsUpdated++;
+    } else if (!isUnassignedXP(old) && Number(old)!==Number(expected)) {
+      preserved++;
+    }
+    if (Number(actor.system?.props?.H0D_Creature_XP)!==Number(expected) || Number(expected)===0) continue;
+    // Sur un Token non lié, l'Actor synthétique conserve sa propre delta.
+    for (const scene of game.scenes ?? []) {
+      for (const token of scene.tokens ?? []) {
+        if (token.actorId!==actor.id || token.actorLink) continue;
+        const synthetic=token.actor;
+        if (!synthetic || !isUnassignedXP(synthetic.system?.props?.H0D_Creature_XP)) continue;
+        await synthetic.update({"system.props.H0D_Creature_XP":expected});
+        tokensUpdated++;
+      }
+    }
+  }
+  notify("info",`H0D Faune : XP synchronisés — ${actorsUpdated} Actor(s), ${tokensUpdated} Token(s) ; ${preserved} valeurs personnalisées conservées.`);
+  return {checked,actorsUpdated,tokensUpdated,preserved,skipped};
+}
+
 async function syncSizeGeneratedCreatures() {
   if (!game.user?.isGM) throw new Error("Synchronisation des tailles réservée au MJ.");
   let checked=0, actorsUpdated=0, tokensUpdated=0, skipped=0;
@@ -3575,11 +3645,12 @@ async function openBuilder() {
 
         <p style="opacity:.75">
           Les profils mutés reçoivent automatiquement leurs composants biologiques validés.
-          Les valeurs non chiffrées dans la fiche source (initiative, sauvegardes, caractéristiques, XP)
-          restent volontairement à 0.
+          Les XP proviennent du barème de Menace ou d'un coût individuel documenté.
+          Les autres caractéristiques non chiffrées restent à 0.
         </p>
         <button type="button" data-h0d-run><i class="fa-solid fa-paw"></i> Générer</button>
         <button type="button" data-h0d-sync-perception><i class="fa-solid fa-eye"></i> Synchroniser PER / DET existantes</button>
+        <button type="button" data-h0d-sync-xp><i class="fa-solid fa-star"></i> Synchroniser XP manquants (0 ou vides)</button>
         <button type="button" data-h0d-sync-size><i class="fa-solid fa-expand"></i> Synchroniser tailles existantes</button>
         <p data-h0d-status role="status" aria-live="polite" style="margin:0;min-height:1.2em;opacity:.8">Tu peux créer plusieurs créatures sans fermer cette fenêtre.</p>
       </div>`,
@@ -3591,6 +3662,7 @@ async function openBuilder() {
       const status=root?.querySelector("[data-h0d-status]");
       const syncButton=root?.querySelector("[data-h0d-sync-perception]");
       const sizeButton=root?.querySelector("[data-h0d-sync-size]");
+      const xpButton=root?.querySelector("[data-h0d-sync-xp]");
       if(!button||!status||button.dataset.ready==="1")return;
       if(syncButton && syncButton.dataset.ready!=="1"){
         syncButton.dataset.ready="1";
@@ -3605,6 +3677,21 @@ async function openBuilder() {
             status.textContent="Erreur : "+(err?.message??err);
             notify("error","H0D Creature Builder : "+(err?.message??err));
           }finally{syncButton.disabled=false;}
+        });
+      }
+      if(xpButton && xpButton.dataset.ready!=="1"){
+        xpButton.dataset.ready="1";
+        xpButton.addEventListener("click",async()=>{
+          xpButton.disabled=true;
+          status.textContent="Synchronisation XP manquants en cours…";
+          try{
+            const result=await syncXPGeneratedCreatures();
+            status.textContent=`XP : ${result.actorsUpdated} Actor(s) et ${result.tokensUpdated} Token(s) corrigés ; ${result.preserved} valeurs conservées.`;
+          }catch(err){
+            console.error(MODULE_ID+" | sync XP",err);
+            status.textContent="Erreur : "+(err?.message??err);
+            notify("error","H0D Creature Builder : "+(err?.message??err));
+          }finally{xpButton.disabled=false;}
         });
       }
       if(sizeButton && sizeButton.dataset.ready!=="1"){
@@ -3691,6 +3778,7 @@ Hooks.once("ready", async () => {
     buildCreature,
     syncPerception: syncPerceptionGeneratedCreatures,
     syncSizes: syncSizeGeneratedCreatures,
+    syncXP: syncXPGeneratedCreatures,
     registerCreature,
     registerCreatures,
     registerMutation,
