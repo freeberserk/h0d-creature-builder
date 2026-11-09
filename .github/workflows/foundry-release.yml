@@ -19,6 +19,8 @@ jobs:
           node tests/creature-xp.mjs
           node tests/creature-size-sync.mjs
           node tests/dependency-manifest.mjs
+          node --check scripts/h0d-launcher-macro.js
+          node tests/launcher-macro.test.mjs
           python3 -m json.tool module.json > /dev/null
       - name: Package and publish release
         env:
