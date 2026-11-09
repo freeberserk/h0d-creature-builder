@@ -2,7 +2,7 @@
   "id": "h0d-creature-builder",
   "title": "H0D Creature Builder",
   "description": "Générateur de faune H0D — profils Dent d’Ambre, PER/DET, tailles canoniques et synchronisation ciblée.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "authors": [
     {
       "name": "JDR Zero Dawn"
@@ -22,10 +22,11 @@
         }
       }
     ],
-    "modules": [
+    "requires": [
       {
         "id": "h0d-template-manager",
         "type": "module",
+        "manifest": "https://github.com/freeberserk/h0d-template-manager/releases/latest/download/module.json",
         "compatibility": {
           "minimum": "1.7.22"
         }

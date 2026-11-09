@@ -1,3 +1,9 @@
+## 0.3.1 — Correction des dépendances Foundry VTT 14
+- Déclare H0D Template Manager comme dépendance requise dans `relationships.requires` (au lieu de `relationships.modules`).
+- Ajoute l'URL du manifeste officiel de H0D Template Manager, en conservant la version minimale `1.7.22` déjà exigée.
+- Conserve le système CSB et les autres métadonnées à l'identique ; aucune migration des Actors ou Items.
+- Ajoute un test automatique pour éviter la régression du manifeste.
+
 ## 0.3.0 — Tailles canoniques de la faune
 
 - Ajoute une taille physique canonique à chacun des 22 profils de faune Dent d'Ambre.
