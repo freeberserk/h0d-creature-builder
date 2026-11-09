@@ -3,7 +3,7 @@ import {readFile} from "node:fs/promises";
 
 const src=await readFile(new URL("../scripts/h0d-creature-builder.js",import.meta.url),"utf8");
 
-assert.match(src,/const MODULE_VERSION = "0\.3\.0"/);
+assert.match(src,/const MODULE_VERSION = "0\.3\.1"/);
 assert.ok(src.includes("const CREATURE_TOKEN_SIZE_BY_CATEGORY"),"Table taille -> token absente");
 assert.ok(src.includes('Grande:2'),"Grande doit produire un token 2x2");
 assert.ok(src.includes('TresGrande:3'),"Très grande doit produire un token 3x3");
