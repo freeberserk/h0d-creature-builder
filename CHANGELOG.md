@@ -1,3 +1,12 @@
+## 0.3.3 — Préservation des macros de lancement personnalisées (P1)
+- Les macros existantes ne sont plus mises à jour sur la seule correspondance de leur nom.
+- Chaque macro créée par H0D porte un flag de propriété explicite et mémorise sa dernière commande générée.
+- Une macro ancienne est reconnue uniquement si nom, type, portée et commande correspondent exactement à la version officielle.
+- Les modifications personnalisées sont conservées ; en cas de conflit de nom, un lanceur distinct « (module officiel) » est créé sans toucher à l'original.
+- Les mises à jour ultérieures ne réécrivent que les lanceurs marqués, non modifiés par l'utilisateur.
+- Scénarios de régression automatisés : création, adoption sûre, personnalisation, renommage, collisions et redémarrage.
+- Validation en Foundry v14 à effectuer après installation.
+
 ## 0.3.2 — XP de la faune
 
 - Ajoute les XP validés par Menace et les cinq coûts individuels documentés à la génération des 22 profils de faune.
