@@ -18,6 +18,7 @@ jobs:
           node tests/perception-sync.mjs
           node tests/creature-xp.mjs
           node tests/creature-size-sync.mjs
+          node tests/h0d-visuels-integration.mjs
           node tests/dependency-manifest.mjs
           node --check scripts/h0d-launcher-macro.js
           node tests/launcher-macro.test.mjs

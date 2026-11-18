@@ -3418,12 +3418,17 @@ async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
   }
 
   if (!actor) {
+    // H0D Visuels est optionnel. Ne choisir une apparence qu'à la création.
+    const visuels=game.h0dVisuels;
+    const visualChoice=visuels?.pickForBuilder?.({kind:"creature",key:creatureKey,mode:"balanced"})??null;
+    const visualPortrait=visualChoice?.portrait?visuels.visualUrl(visualChoice.portrait):null;
+    const visualToken=visualChoice?.token?visuels.visualUrl(visualChoice.token):null;
     const sys = systemFromTemplate(actorTemplate);
     const tokenSize=tokenDimensionsForCreature(def);
     const [created] = await Actor.implementation.createDocuments([{
       name:def.label,
       type:"character",
-      img:def.img || actorTemplate.img || "systems/custom-system-builder/img/template-logo.svg",
+      img:visualPortrait || def.img || actorTemplate.img || "systems/custom-system-builder/img/template-logo.svg",
       folder:threatFolder.id,
       system:sys,
       prototypeToken:{
@@ -3431,9 +3436,13 @@ async function buildCreature(creatureKey, {mutationKeys=[], mode="update"}={}) {
         name:def.label,
         actorLink:false,
         width:tokenSize.width,
-        height:tokenSize.height
+        height:tokenSize.height,
+        ...(visualToken?{texture:{...clone(actorTemplate.prototypeToken?.texture??{}),src:visualToken}}:{})
       },
-      flags:{[MODULE_ID]:{generated:true, creatureKey, sourceTemplateId:actorTemplate.id, sourceDataset:SOURCE_DATASET, sourceGroup:def.group || ""}}
+      flags:{
+        [MODULE_ID]:{generated:true, creatureKey, sourceTemplateId:actorTemplate.id, sourceDataset:SOURCE_DATASET, sourceGroup:def.group || ""},
+        ...(visualChoice?{"h0d-visuels":{selectedVariant:visualChoice.id,source:"creature-builder"}}:{})
+      }
     }]);
     actor = created;
   }

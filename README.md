@@ -1,3 +1,9 @@
+## H0D Visuels (intégration facultative en préparation)
+
+Lors de **la création d'une nouvelle fiche de faune**, le Creature Builder lit la bibliothèque `game.h0dVisuels` sous la catégorie `creature` et la clé technique `creatureKey`, lorsqu'elle est installée. Les portraits et tokens ne sont jamais attribués aux Actors existants lors d'une mise à jour. Le format de token (largeur / hauteur) reste issu du Creature Builder.
+
+Sans H0D Visuels, aucune différence de comportement. Aucune illustration privée n'est distribuée dans ce dépôt. Référence du moteur prévue : `freeberserk/h0d-visuels`.
+
 ## 0.3.3 — Macros personnalisées protégées
 
 Au chargement, le module identifie son lanceur grâce au flag de propriété `flags.h0d-creature-builder.launcher`. Une ancienne macro portant exactement le nom ET la commande officiels est marquée sans changement. Une macro personnalisée portant le même nom n'est jamais réécrite : le module crée au besoin une macro séparée « (module officiel) ». Une modification manuelle d'une macro déjà marquée est conservée au prochain démarrage ; le module n'en modifie plus la commande. Aucun nom seul ne donne le droit d'écraser une macro.
