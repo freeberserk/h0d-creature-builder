@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const source=readFileSync(new URL("../scripts/h0d-creature-builder.js",import.meta.url),"utf8");
+const creation=source.slice(source.indexOf("async function buildCreature("),source.indexOf("const props = {",source.indexOf("async function buildCreature(")));
+assert.ok(creation.includes('visuels?.pickForBuilder?.({kind:"creature",key:creatureKey,mode:"balanced"})'));
+assert.ok(creation.includes("img:visualPortrait || def.img"));
+assert.ok(creation.includes('texture:{...clone(actorTemplate.prototypeToken?.texture??{}),src:visualToken}'));
+assert.ok(creation.includes('source:"creature-builder"'));
+assert.ok(creation.indexOf("const visualChoice=")>creation.indexOf("if (!actor)"));
+assert.ok(!source.includes("await game.h0dVisuels.openPicker("),"Aucun changement visuel automatique de fiches existantes");
+console.log("OK — H0D Visuels Creature optionnel et appliqué uniquement aux nouvelles fiches.");
